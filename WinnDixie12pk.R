@@ -2,7 +2,7 @@
 
 # filter zf2 
 
-# Winn-Dixie 24 pack
+# Winn-Dixie 12 pack b2g2
 
 library(data.table)
 library(tidyverse)

@@ -15,7 +15,7 @@ cust <- cust %>% select(Soldto = id, PrimaryGroupDesc,PrimaryGroup, DeliveringPl
 
 # FILTER CUSTOMER
 cust <- cust %>% 
-  filter(PrimaryGroupDesc == "WINN DIXIE NON HEART")
+  filter(PrimaryGroupDesc == "WALGREEN")
 
   
 prod <- fread("data/products.csv") %>% 
@@ -23,71 +23,43 @@ prod <- fread("data/products.csv") %>%
 
 # FILTER PRODUCT
 prod <- prod %>% 
-  filter(grepl('12Z CN 12FP', Product)) %>% 
+  filter(grepl('16.9Z', Name)) %>%
+  filter(BrandCategory == "Honest-KO",
+         BrandGroup == "Tea") %>% 
   select(-c(Product, Package, PackageCategory, Size))
-  
-
-front.2018 <- fread("C:/Users/FL014036/Coke Florida/Bogdan Visinescu - COPA/SuggestedOrder2018P1_P6.csv") %>%
-  select(BillingDocNo, BillItem, MaterialNo, BillType, Soldto, BillQty, NetValue, FiscalYear, FiscalYearQuarter, FiscalYearPeriod, FiscalYearWeek) %>%
-  filter(BillType == "ZF2",
-         FiscalYearPeriod != "201806") %>% 
-  right_join(cust, by ="Soldto")
 
 back.2018 <- fread("C:/Users/FL014036/Coke Florida/Bogdan Visinescu - COPA/SuggestedOrder2018P6_P12.csv") %>%
   select(BillingDocNo, BillItem, MaterialNo, BillType, Soldto, BillQty, NetValue, FiscalYear, FiscalYearQuarter, FiscalYearPeriod, FiscalYearWeek) %>%
   filter(BillType == "ZF2") %>% 
   right_join(cust, by ="Soldto")
 
-front.2019 <- fread("C:/Users/FL014036/Coke Florida/Bogdan Visinescu - COPA/SuggestedOrder2019P1_P8.csv") %>% 
-  select(BillingDocNo, BillItem, MaterialNo, BillType, Soldto, BillQty, NetValue, FiscalYear, FiscalYearQuarter, FiscalYearPeriod, FiscalYearWeek) %>% 
-  filter(BillType == "ZF2") %>% 
-  right_join(cust, by ="Soldto")
-
-back.2019 <- fread("C:/Users/FL014036/Coke Florida/Bogdan Visinescu - COPA/SuggestedOrderQ4.csv")%>% 
-  select(BillingDocNo, BillItem, MaterialNo, BillType, Soldto, BillQty, NetValue, FiscalYear, FiscalYearQuarter, FiscalYearPeriod, FiscalYearWeek) %>% 
-  filter(BillType == "ZF2") %>% 
-  right_join(cust, by ="Soldto")
-
-all <- rbind(front.2018, back.2018, front.2019, back.2019) %>% 
+back.2018 <- back.2018 %>% 
   right_join(prod, by = "MaterialNo") %>% 
   mutate(FiscalYearWeek = as.factor(FiscalYearWeek))
 
-rm(front.2018, back.2018, front.2019, back.2019, cust, prod)
-
+rm(cust, prod)
 
 # generate calendar 
 # set promo -1 week out
 
-promo.cal <- data.frame(FiscalYearWeek = c("201813",
-                                           "201821",
-                                           "201826",
-                                           "201843",
-                                           "201846",
-                                           "201905",
-                                           "201916",
-                                           "201921",
-                                           "201926",
-                                           "201935",
-                                           "201947",
-                                           "201951"),
+promo.cal <- data.frame(FiscalYearWeek = c("201828",
+                                           "201831",
+                                           "201833"),
                         Promo = c("yes",
-                                  "yes",
-                                  "yes",
-                                  "yes",
-                                  "yes",
-                                  "yes",
-                                  "yes",
-                                  "yes",
-                                  "yes",
-                                  "yes",
                                   "yes",
                                   "yes")
                         )
 
-all <- all %>% 
+all <- back.2018 %>% 
   left_join(promo.cal, "FiscalYearWeek")
 
 all$Promo <- fct_explicit_na(all$Promo, "no")
+
+all %>% 
+  na.omit() %>% 
+  group_by(Promo) %>% 
+  summarise(ave = mean(BillQty),
+            sd = sd(BillQty))
 
 a <- all %>%
   group_by(SalesOfficeDesc, Soldto, Promo) %>% 
